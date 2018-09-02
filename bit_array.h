@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <math.h>
 
 typedef uint64_t WORD;
 
@@ -18,48 +19,55 @@ public:
     WORD d_data[d_length];
 
     constexpr BitArray();
-    constexpr BitArray(WORD const number);
-    BitArray(std::initializer_list<WORD> const list);
+    template<class... T>
+    constexpr BitArray(T... ts);
+    constexpr BitArray(BitArray const &other) = default;
 
+    constexpr BitArray<N> operator>>=(int const n);
     constexpr BitArray<N> operator>>(int const n);
+    constexpr BitArray<N> operator<<=(int const n);
     constexpr BitArray<N> operator<<(int const n);
     bool operator>(BitArray<N> const other);
     bool operator<(BitArray<N> const other);
     bool operator>=(BitArray<N> const other);
     bool operator<=(BitArray<N> const other);
     bool operator==(BitArray<N> const other);
+    BitArray<N> operator&=(BitArray<N> const other);
     BitArray<N> operator&(BitArray<N> const other);
+    BitArray<N> operator|=(BitArray<N> const other);
     BitArray<N> operator|(BitArray<N> const other);
+    BitArray<N> operator^=(BitArray<N> const other);
     BitArray<N> operator^(BitArray<N> const other);
+    BitArray<N> operator!();
+    BitArray<N> operator+=(BitArray<N> const other);
     BitArray<N> operator+(BitArray<N> const other);
+    BitArray<N> operator-=(BitArray<N> const other);
     BitArray<N> operator-(BitArray<N> const other);
+    BitArray<N> operator*=(BitArray<N> const other);
     BitArray<N> operator*(BitArray<N> const other);
     BitArray<2*N> safe_mul(BitArray<N> const other);
+
+    long double to_ld();
+
+    static constexpr BitArray<N> with_ones(size_t start, size_t end);
+
 };
 
 template<size_t N>
 constexpr BitArray<N>::BitArray()
     :
-        d_data({})
-{}
-
-// sets only the first word
-template <size_t N>
-constexpr BitArray<N>::BitArray(WORD const number)
-    :
-        d_data({})
-{
-    d_data[0] = number;
-}
-
-template<size_t N>
-BitArray<N>::BitArray(std::initializer_list<WORD> const list)
-    :
-        d_data(list)
+        d_data{}
 {}
 
 template<size_t N>
-constexpr BitArray<N> BitArray<N>::operator>>(int const n)
+template<class... T>
+constexpr BitArray<N>::BitArray(T... numbers)
+    :
+        d_data{numbers...}
+{}
+
+template<size_t N>
+constexpr BitArray<N> BitArray<N>::operator>>=(int const n)
 {
     // use the left shift operator if we're shifting right by a negative amount
     if (n < 0)
@@ -69,15 +77,14 @@ constexpr BitArray<N> BitArray<N>::operator>>(int const n)
     size_t const skip = n / 64;
     // shift denotes the size of the shift after we've selected the right 
     // index. For example, if we're shifting right a BitArray with 64-bit words
-    // by 77, we only need to shift each word by 13.
+    // by 77, we only need to shift each wor=d by 13.
     size_t const shift = n % 64;
-    BitArray<N> result;
     // work from right to left starting at skip to make sure that reading and
     // writing don't interfere with eachother
     for (size_t index = skip; index != d_length; ++index)
     {
         size_t const target = index - skip;
-        result.d_data[target] = (this->d_data[index] >> shift);
+        d_data[target] = (d_data[index] >> shift);
         // if we're not in the leftmost word, we need to include carry from the
         // word to the left
         if (index != d_length - 1)
@@ -85,14 +92,20 @@ constexpr BitArray<N> BitArray<N>::operator>>(int const n)
             // shift operator, and it becomes UB, instead of all zeros. To 
             // ensure the correct behaviour, we multiply by `shift != 0`, and
             // we get the correct result
-            result.d_data[target] |= (this->d_data[index + 1] << 
+            d_data[target] |= (d_data[index + 1] << 
                 (WORD_LENGTH - shift)) * (shift != 0);
     }
-    return result;
+    return *this;
 }
 
 template<size_t N>
-constexpr BitArray<N> BitArray<N>::operator<<(int const n)
+constexpr BitArray<N> BitArray<N>::operator>>(int const n)
+{
+    return BitArray<N>{*this} >>= n;
+}
+
+template<size_t N>
+constexpr BitArray<N> BitArray<N>::operator<<=(int const n)
 {
     // undocumented stuff is the same as in `operator>>`
     if (n < 0)
@@ -100,7 +113,6 @@ constexpr BitArray<N> BitArray<N>::operator<<(int const n)
 
     size_t const skip = n / 64;
     size_t const shift = n % 64;
-    auto result = BitArray<N>();
 
     // each word in `this` is written from the position `index` to `index + 
     // skip`. Therefore, the first word that is actually written to somewhere 
@@ -111,10 +123,10 @@ constexpr BitArray<N> BitArray<N>::operator<<(int const n)
         // decrement outside the get_loop condition to reach zero
         --index;
         size_t const target = index + skip;
-        result.d_data[target] = (this->d_data[index] << shift);
+        d_data[target] = (d_data[index] << shift);
         // we have to include the carry from the word to the right
         if (index != 0)
-            result.d_data[target] |= (this->d_data[index - 1] >> 
+            d_data[target] |= (d_data[index - 1] >> 
                 (WORD_LENGTH - shift)) * (shift != 0);
     }
 
@@ -122,8 +134,14 @@ constexpr BitArray<N> BitArray<N>::operator<<(int const n)
     // (eg a BitArray<100> will use two 64-bit words, but should keep all zeros
     // in the leftmost 28 bits.)
     WORD constexpr mask = 0xFFFFFFFFFFFFFFFF >> (d_length * WORD_LENGTH - N);
-    result.d_data[d_length - 1] &= mask;
-    return result;
+    d_data[d_length - 1] &= mask;
+    return *this;
+}
+
+template<size_t N>
+constexpr BitArray<N> BitArray<N>::operator<<(int const n)
+{
+    return BitArray<N>{*this} <<= n;
 }
 
 template<size_t N>
@@ -157,94 +175,107 @@ bool BitArray<N>::operator<(BitArray<N> const other)
 template<size_t N>
 bool BitArray<N>::operator>=(BitArray<N> const other)
 {
-    for (size_t index = d_length; index != 0;)
-    {
-        --index;
-        if (this->d_data[index] > other.d_data[index])
-            return true;
-        else if (this->d_data[index] < other.d_data[index])
-            return false;
-    }
-    return true;
+    return not (*this < other);
 }
 
 template<size_t N>
 bool BitArray<N>::operator<=(BitArray<N> const other)
 {
-    for (size_t index = d_length; index != 0;)
-    {
-        --index;
-        if (this->d_data[index] < other.d_data[index])
-            return true;
-        else if (this->d_data[index] > other.d_data[index])
-            return false;
-    }
-    return true;
+    return not (*this > other);
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator&=(BitArray<N> const other)
+{
+    for (size_t index = 0; index != d_length; ++index)
+        d_data[index] = d_data[index] & other.d_data[index];
+    return *this;
 }
 
 template<size_t N>
 BitArray<N> BitArray<N>::operator&(BitArray<N> const other)
 {
-    auto result = BitArray<N>();
+    return BitArray<N>{*this} &= other;
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator|=(BitArray<N> const other)
+{
     for (size_t index = 0; index != d_length; ++index)
-        result.d_data[index] = this->d_data[index] & other.d_data[index];
-    return result;
+        d_data[index] = d_data[index] | other.d_data[index];
+    return *this;
 }
 
 template<size_t N>
 BitArray<N> BitArray<N>::operator|(BitArray<N> const other)
 {
-    auto result = BitArray<N>();
+    return BitArray<N>{*this} |= other;
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator^=(BitArray<N> const other)
+{
     for (size_t index = 0; index != d_length; ++index)
-        result.d_data[index] = this->d_data[index] | other.d_data[index];
-    return result;
+        d_data[index] = d_data[index] ^ other.d_data[index];
+    return *this;
 }
 
 template<size_t N>
 BitArray<N> BitArray<N>::operator^(BitArray<N> const other)
 {
-    auto result = BitArray<N>();
+    return BitArray<N>{*this} ^= other;
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator!()
+{
+    BitArray<N> result;
     for (size_t index = 0; index != d_length; ++index)
-        result.d_data[index] = this->d_data[index] ^ other.d_data[index];
+        result.d_data[index] = !this->d_data[index];
     return result;
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator+=(BitArray<N> const other)
+{
+    size_t carry = 0;
+    for (size_t index = 0; index != d_length; ++index)
+    {
+        // first overwrite the carry by true or false, so 1 or 0, depending on
+        // whether `d_data[index] + carry` overflows. Store the result at
+        // `result.d_data[index]`.
+        carry = __builtin_add_overflow(d_data[index], carry, d_data + index);
+        carry += __builtin_add_overflow(d_data[index], other.d_data[index],
+                                        d_data + index);
+
+
+    }
+    return *this;
 }
 
 template<size_t N>
 BitArray<N> BitArray<N>::operator+(BitArray<N> const other)
 {
+    return BitArray<N>{*this} += other;
+}
+
+template<size_t N>
+BitArray<N> BitArray<N>::operator-=(BitArray<N> const other)
+{
     bool carry = false;
-    auto result = BitArray<N>();
     for (size_t index = 0; index != d_length; ++index)
     {
-        result.d_data[index] = 
-            this->d_data[index] + other.d_data[index] + carry;
-
-        // might be a slow method, but not sure how to make faster
-        WORD constexpr MAX = -1;
-        if (MAX - this->d_data[index] < other.d_data[index] or
-                MAX - other.d_data[index] < this->d_data[index])
-            carry = true;
-        else
-            carry = false;
+        carry = __builtin_sub_overflow(d_data[index], carry, d_data + index);
+        carry += __builtin_sub_overflow(d_data[index], other.d_data[index],
+                                        d_data + index);
     }
-    return result;
+    return *this;
 }
 
 template<size_t N>
 BitArray<N> BitArray<N>::operator-(BitArray<N> const other)
 {
-    bool carry = false;
-    auto result = BitArray<N>();
-    for (size_t index = 0; index != d_length; ++index)
-    {
-        result.d_data[index] = 
-            this->d_data[index] - other.d_data[index] - carry;
-        if (this->d_data[index] < other.d_data[index])
-            carry = true;
-        else
-            carry = false;
-    }
-    return result;
+    return BitArray<N>{*this} -= other;
 }
 
 std::pair<WORD, WORD> mul_with_carry(WORD const a, WORD const b)
@@ -269,6 +300,7 @@ BitArray<N> BitArray<N>::operator*(BitArray<N> const other)
     // by truncating the answer's most significant bits.
     // todo2: the loop uses a temporary BitArray to insert the computed values,
     // so that it automatically handles carrying. This ~might~ be slow. 
+    // todo3: also implement operator*=
 
     // to perform this function we need to compute the carry of the 
     // multiplication of two 64-bit words. We do this by splitting t into two
@@ -316,6 +348,34 @@ BitArray<2*N> BitArray<N>::safe_mul(BitArray<N> const other)
 }
 
 template<size_t N>
+long double BitArray<N>::to_ld()
+{
+    long double result;
+    for (size_t index = 0; index != d_length; ++index)
+        result += static_cast<long double>(d_data[index]) * 
+            pow(2L, 64 * index);
+    return result;
+}
+
+/// returns a `BitArray<N>` with all ones between the indexes, counting from
+/// right to left.
+template<size_t N>
+constexpr BitArray<N> BitArray<N>::with_ones(size_t const start,
+                                             size_t const end)
+{
+    // this function is slow, but it is only used in compile time. If 
+    // compilation times become excessive, look here
+    BitArray<N> result;
+    for (size_t index = start; index != end; ++index)
+    {
+        size_t word_index = index % WORD_LENGTH;
+        size_t word_num = index / WORD_LENGTH;
+        result.d_data[word_num] |= 1 << word_index;
+    }
+    return result;
+}
+
+template<size_t N>
 std::ostream &operator<<(std::ostream &stream, BitArray<N> bit_array)
 {
     std::cout << "0";
@@ -331,3 +391,5 @@ std::ostream &operator<<(std::ostream &stream, BitArray<N> bit_array)
     }
     return stream;
 }
+
+#endif

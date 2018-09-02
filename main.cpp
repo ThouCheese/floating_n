@@ -4,7 +4,5 @@
 
 int main()
 {
-    // std::cout << F<20, 10>::sign_mask << '\n';
-    auto bit_array = BitArray<101>();
-    std::cout << bit_array << '\n';
+    std::cout << BitArray<20>::with_ones(8, 12) << '\n';
 }

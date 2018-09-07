@@ -6,7 +6,6 @@
 #include <math.h>
 
 typedef uint64_t WORD;
-
 /**
 * Here N is the number of bits that the array has to store
 */
@@ -47,10 +46,13 @@ public:
     BitArray<N> operator*(BitArray<N> const other);
     BitArray<2*N> safe_mul(BitArray<N> const other);
 
+    template<size_t PERIOD>
+    BitArray<N> fixed_point_mul(BitArray<N> const other);
+    size_t leading_zeros();
+
     long double to_ld();
 
     static constexpr BitArray<N> with_ones(size_t start, size_t end);
-
 };
 
 template<size_t N>
@@ -278,15 +280,18 @@ BitArray<N> BitArray<N>::operator-(BitArray<N> const other)
     return BitArray<N>{*this} -= other;
 }
 
+template<size_t WORD_LENGTH>
 std::pair<WORD, WORD> mul_with_carry(WORD const a, WORD const b)
 {
-    auto lo = [](WORD const number) { return number & 0x00000000FFFFFFFF; };
-    auto hi = [](WORD const number) { return number >> 32; };
+    auto lo = [&](WORD const number) 
+        { return number & (static_cast<WORD>(-1) >> WORD_LENGTH / 2); };
+    auto hi = [&](WORD const number) 
+        { return number >> WORD_LENGTH / 2; };
     // use the wrapping behaviour of the normal overflow of unsigned numbers
     // to compute the result without too much involvement
     WORD result = a * b;
     // complex mathematics to compute the carry, I have a visual proof, email
-    // me (or don't :))
+    // me (or don't :) )
     WORD carry = hi(a) * hi(b) + hi(hi(a) * lo(b) + lo(a) * hi(b));
     return std::pair<WORD, WORD>(carry, result);
 }
@@ -315,8 +320,9 @@ BitArray<N> BitArray<N>::operator*(BitArray<N> const other)
         {
             if (self_index + other_index > d_length)
                 break;
-            auto pair = mul_with_carry(this->d_data[self_index], 
-                                       other.d_data[other_index]);
+            auto pair = mul_with_carry<WORD_LENGTH>(
+                this->d_data[self_index], other.d_data[other_index]
+            );
             BitArray<N> temp = BitArray<N>();
             temp.d_data[self_index + other_index] = pair.second;
             // prevent a segfault when writing the carry
@@ -345,6 +351,59 @@ BitArray<2*N> BitArray<N>::safe_mul(BitArray<N> const other)
         }
     }
     return result;
+}
+
+/// Performs floating point multiplication with the period to the left of
+/// `PERIOD`, but assums that everything to the left of `PERIOD` is set to 
+/// zero. This allows for some optimizations, and is used by `fixed_point_mul`
+template<size_t N, size_t PERIOD>
+BitArray<N> floating_point_mul_internal(BitArray<N> const a,
+                                        BitArray<N> const b)
+{
+    auto hi = [](BitArray<N> num)
+        { return num >> (PERIOD / 2); };
+    auto lo = [](BitArray<N> num)
+        { return num & BitArray<N>::with_ones(0, PERIOD / 2); };
+    return hi(a) * hi(b) + hi(hi(a) * lo(b) + lo(a) * hi(a));
+}
+
+/// Performs floating point multiplication with the period to the left of 
+/// `PERIOD`. 
+template<size_t N>
+template<size_t PERIOD>
+BitArray<N> BitArray<N>::fixed_point_mul(BitArray<N> const other)
+{
+    static_assert(N > PERIOD);
+    // if we assume that the comma is between `PERIOD` and `PERIOD + 1`, we can
+    // get the part before the comma by shifting right by `PERIOD` and the part
+    // after the comma by performing bitwise and by `PERIOD` ones and then all 
+    // zeros.
+    BitArray<N> this_int = *this >> PERIOD;
+    BitArray<N> this_flp = *this & BitArray<N>::with_ones(0, PERIOD);
+    BitArray<N> other_int = other >> PERIOD;
+    BitArray<N> other_flp = other & BitArray<N>::with_ones(0, PERIOD);
+
+    return (this_int * other_int << PERIOD) + this_int * other_flp + 
+        this_flp * other_int + 
+        floating_point_mul_internal<N, PERIOD>(this_flp, other_flp);
+}
+
+template<size_t N>
+size_t BitArray<N>::leading_zeros()
+{
+    for (size_t index = d_length; index != 0;)
+    {
+        --index;
+        if (d_data[index] == 0)
+            continue;
+        for (size_t num_index = WORD_LENGTH; num_index != 0;)
+        {
+            --num_index;
+            if (d_data[index] & (1 << num_index) != 0)
+                return N - WORD_LENGTH * index - num_index;
+        }
+    }
+    return N;
 }
 
 template<size_t N>

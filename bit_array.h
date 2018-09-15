@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
 
 typedef uint64_t WORD;
 /**
@@ -51,6 +51,8 @@ public:
     size_t leading_zeros();
 
     long double to_ld();
+
+
 
     static constexpr BitArray<N> with_ones(size_t start, size_t end);
 };
@@ -409,7 +411,7 @@ size_t BitArray<N>::leading_zeros()
 template<size_t N>
 long double BitArray<N>::to_ld()
 {
-    long double result;
+    long double result = 0;
     for (size_t index = 0; index != d_length; ++index)
         result += static_cast<long double>(d_data[index]) * 
             pow(2L, 64 * index);
@@ -422,6 +424,8 @@ template<size_t N>
 constexpr BitArray<N> BitArray<N>::with_ones(size_t const start,
                                              size_t const end)
 {
+    // todo: make this compil
+    // static_assert(start < end);
     // this function is slow, but it is only used in compile time. If 
     // compilation times become excessive, look here
     BitArray<N> result;
@@ -429,7 +433,7 @@ constexpr BitArray<N> BitArray<N>::with_ones(size_t const start,
     {
         size_t word_index = index % WORD_LENGTH;
         size_t word_num = index / WORD_LENGTH;
-        result.d_data[word_num] |= 1 << word_index;
+        result.d_data[word_num] |= static_cast<WORD>(1) << word_index;
     }
     return result;
 }

@@ -22,7 +22,7 @@ public:
     BitArray<s_bits> static constexpr s_sign_mask = 
         BitArray<s_bits>::with_ones(M + E, M + E + 1);
     BitArray<s_bits> static constexpr s_man_mask = 
-        BitArray<s_bits>::with_ones(M + E, M);
+        BitArray<s_bits>::with_ones(M, M + E);
     BitArray<s_bits> static constexpr s_exp_mask = 
         BitArray<s_bits>::with_ones(0, M);
 
@@ -83,7 +83,31 @@ std::ostream &operator<<(std::ostream &stream, F<M, E> number);
 template<size_t M, size_t E>
 F<M, E>::F(double const number)
 {
-    // todo: convert normal double to F<M, E>
+    if (number == 0.)
+    {   
+        *this = ZERO;
+        return;
+    }
+    double pos_num = std::abs(number);
+    WORD exponent_word = static_cast<WORD>(std::log(pos_num)/std::log(2.0));
+    BitArray<s_bits> exp = BitArray<s_bits>{exponent_word};
+    // casting to WORD means 64 bits precision while initializing if WORD is
+    // 64 bits. This is more than the standard double, so it's fine. For 
+    // proper support for 32 bit machines, this needs to be altered at some 
+    // point
+    BitArray<s_bits> man = BitArray<s_bits>{
+        static_cast<WORD>(pos_num / std::pow(2, exponent_word) * 
+            std::pow(2, M)) 
+    };
+    man -= BitArray<s_bits>::with_ones(M, M + 1);
+    BitArray<s_bits> sign = BitArray<s_bits>{
+        static_cast<WORD>(number > 0.0 ? 1 : 0)
+    };
+    std::cout << "man is " << pos_num / std::pow(2, exponent_word) * 
+            std::pow(2, M) << '\n';
+
+    this->d_data = man | (exp << M) | (sign << M + E);
+    
 }
 
 template<size_t M, size_t E>
@@ -113,9 +137,9 @@ F<M, E> F<M, E>::set_sign(bool const sign)
 {
     BitArray<s_bits> constexpr mask = BitArray<s_bits>::with_ones(0, s_bits);
     if (sign)
-        *this |= !mask;
+        this->d_data |= !mask;
     else
-        *this &= mask;
+        this->d_data &= mask;
     return *this;
 }
 
@@ -233,11 +257,11 @@ std::ostream &operator<<(std::ostream &stream, F<M, E> number)
 
     // todo: use of the `<F, M>::operator== causes an undefined refernce to 
     // `BitArray<F + M + 1>::operator==`. Not sure how to fix this.
-    if (number == F<M, E>::ZERO)
-        std::cout << '0';
-    else if (number == F<M, E>::NEG_ZERO)
-        std::cout << "-0";
-    else 
+    // if (number == F<M, E>::ZERO)
+    //     std::cout << '0';
+    // else if (number == F<M, E>::NEG_ZERO)
+    //     std::cout << "-0";
+    // else 
     {
         if (not number.get_sign())
             stream << '-';

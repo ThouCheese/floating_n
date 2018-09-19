@@ -21,8 +21,8 @@ public:
     // masks for extracting the specific numbers
     BitArray<s_bits> static constexpr s_sign_mask = 
         BitArray<s_bits>::with_ones(M + E, M + E + 1);
-    BitArray<s_bits> static constexpr s_man_mask = 
-        BitArray<s_bits>::with_ones(M, M + E);
+    BitArray<s_bits> static constexpr s_man_mask;// = 
+        // BitArray<s_bits>::with_ones(M, M + E);
     BitArray<s_bits> static constexpr s_exp_mask = 
         BitArray<s_bits>::with_ones(0, M);
 
@@ -65,17 +65,19 @@ private:
     bool operator>=(F<M, E> const other);
     bool operator<(F<M, E> const other);
     bool operator<=(F<M, E> const other);
-
     F<M, E> operator*=(F<M, E> const other);
     F<M, E> operator*(F<M, E> const other);
 
     // mathematical functions
     F<M, E> abs();
 
-
     template<size_t _M, size_t _E>
     friend std::ostream &operator<<(std::ostream &stream, F<_M, _E> number);
 };
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_man_mask = 
+        BitArray<F<M, E>::s_bits>::with_ones(M, M + E);
 
 template<size_t M, size_t E>
 std::ostream &operator<<(std::ostream &stream, F<M, E> number);

@@ -7,40 +7,28 @@
 template<size_t M, size_t E>
 class F
 {
-public:
+    // important constants used interally
     size_t static constexpr s_bits = M + E + 1;
-
-    // the implicit leading one in the mantissa, used for addition
-    BitArray<s_bits> static constexpr s_two_to_the_M = 
-        BitArray<s_bits>::with_ones(M, M + 1);
-    // since the exponent is stored in biased form, to obtain it's true value,
-    // we need to subtract this number.
-    BitArray<s_bits> static constexpr s_two_to_the_E = 
-        BitArray<s_bits>::with_ones(E, E + 1);
+    BitArray<s_bits> static constexpr
+            s_two_to_the_M = BitArray<s_bits>::with_ones(M, M + 1),
+            s_two_to_the_E = BitArray<s_bits>::with_ones(E, E + 1);
+public:
 
     // masks for extracting the specific numbers
-    BitArray<s_bits> static constexpr s_sign_mask = 
-        BitArray<s_bits>::with_ones(M + E, M + E + 1);
-    BitArray<s_bits> static constexpr s_man_mask = 
-        BitArray<s_bits>::with_ones(M, M + E);
-    BitArray<s_bits> static constexpr s_exp_mask = 
-        BitArray<s_bits>::with_ones(0, M);
+    BitArray<s_bits> static constexpr
+        s_sign_mask = BitArray<s_bits>::with_ones(M + E, M + E + 1),
+        s_exp_mask = BitArray<s_bits>::with_ones(M, M + E),
+        s_man_mask = BitArray<s_bits>::with_ones(0, M);
 
     // constant numbers
-    F static constexpr ZERO = F<M, E>(
-        BitArray<s_bits>::with_ones(M + E, M + E + 1));
-    F static constexpr NEG_ZERO = F<M, E>(
-        BitArray<s_bits>());
-    // A var named NAN won't compile with a very confusing error message
-    F static constexpr _NAN = F<M, E>( 
-        BitArray<s_bits>::with_ones(M, M + E + 1));
-    F static constexpr INF = F<M, E>(
-        BitArray<s_bits>::with_ones(0, M + E + 1));
-    F static constexpr NEG_INF = F<M, E>(
-        BitArray<s_bits>::with_ones(0, M + E));
-    F static constexpr ONE = F<M, E>(
-        BitArray<s_bits>::with_ones(M + E - 1, M + E + 1));
-    // todo: PI, EULER, EPSILON
+    F static constexpr
+        ZERO{BitArray<s_bits>::with_ones(M + E, M + E + 1)},
+        NEG_ZERO{BitArray<s_bits>()},
+        _NAN{BitArray<s_bits>::with_ones(M, M + E + 1)},
+        INF{BitArray<s_bits>::with_ones(0, M + E + 1)},
+        NEG_INF{BitArray<s_bits>::with_ones(0, M + E)},
+        ONE{BitArray<s_bits>::with_ones(M + E - 1, M + E + 1)};
+    // todo: PI, EULER, EPSILON, will be hard
 
     BitArray<s_bits> d_data;
 
@@ -48,34 +36,66 @@ public:
     F<M, E>(double const number);
 
 private:
+    constexpr F<M, E>(BitArray<s_bits> const bit_array);
     // these functions are for internal use only, as they don't treat the
     // number so much as a number, but rather as three separate numbers. This 
     // is counterintuitive for the user.
-    constexpr F<M, E>(BitArray<s_bits> const bit_array);
     F<M, E> set_man(BitArray<s_bits> const matissa);
     F<M, E> set_exp(BitArray<s_bits> const exponent);
     F<M, E> set_sign(bool const sign);
-    BitArray<s_bits> get_man();
-    BitArray<s_bits> get_exp();
-    bool get_sign();
-
+    BitArray<s_bits> get_man() const;
+    BitArray<s_bits> get_exp() const;
+    bool get_sign() const;
+public:
     // operators
-    bool operator==(F<M, E> const other);
-    bool operator>(F<M, E> const other);
-    bool operator>=(F<M, E> const other);
-    bool operator<(F<M, E> const other);
-    bool operator<=(F<M, E> const other);
+    bool operator==(F<M, E> const other) const;
+    bool operator>(F<M, E> const other) const;
+    bool operator>=(F<M, E> const other) const;
+    bool operator<(F<M, E> const other) const;
+    bool operator<=(F<M, E> const other) const;
 
+    F<M, E> operator+=(F<M, E> const other);
+    F<M, E> operator+(F<M, E> const other) const;
     F<M, E> operator*=(F<M, E> const other);
-    F<M, E> operator*(F<M, E> const other);
+    F<M, E> operator*(F<M, E> const other) const;
 
     // mathematical functions
-    F<M, E> abs();
-
+    F<M, E> abs() const;
+    F<M, E> sin() const;
+    F<M, E> cos() const;
+    F<M, E> tan() const;
+    F<M, E> sqrt() const;
 
     template<size_t _M, size_t _E>
     friend std::ostream &operator<<(std::ostream &stream, F<_M, _E> number);
 };
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_two_to_the_M;
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_two_to_the_E;
+
+template<size_t M, size_t E>
+F<M, E> constexpr F<M, E>::ZERO;
+
+template<size_t M, size_t E>
+F<M, E> constexpr F<M, E>::NEG_ZERO;
+
+template<size_t M, size_t E>
+F<M, E> constexpr F<M, E>::INF;
+
+template<size_t M, size_t E>
+F<M, E> constexpr F<M, E>::NEG_INF;
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_sign_mask;
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_man_mask;
+
+template<size_t M, size_t E>
+BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_exp_mask;
 
 template<size_t M, size_t E>
 std::ostream &operator<<(std::ostream &stream, F<M, E> number);
@@ -90,31 +110,16 @@ F<M, E>::F(double const number)
     }
     double pos_num = std::abs(number);
     WORD exponent_word = static_cast<WORD>(std::log(pos_num)/std::log(2.0));
-    BitArray<s_bits> exp = BitArray<s_bits>{exponent_word};
-    // casting to WORD means 64 bits precision while initializing if WORD is
-    // 64 bits. This is more than the standard double, so it's fine. For 
-    // proper support for 32 bit machines, this needs to be altered at some 
-    // point
-    BitArray<s_bits> man = BitArray<s_bits>{
-        static_cast<WORD>(pos_num / std::pow(2, exponent_word) * 
-            std::pow(2, M)) 
-    };
-    man -= BitArray<s_bits>::with_ones(M, M + 1);
-    BitArray<s_bits> sign = BitArray<s_bits>{
-        static_cast<WORD>(number > 0.0 ? 1 : 0)
-    };
-    std::cout << "man is " << pos_num / std::pow(2, exponent_word) * 
-            std::pow(2, M) << '\n';
-
-    this->d_data = man | (exp << M) | (sign << M + E);
-    
+    BitArray<s_bits> exp{exponent_word};
+    BitArray<s_bits> man = (BitArray<s_bits>{
+        static_cast<WORD>(pos_num / std::pow(2, exponent_word) * std::pow(2, M - 1))
+    } << 1) - s_two_to_the_M;
+    BitArray<s_bits> sign{static_cast<WORD>(number > 0.0 ? 1 : 0)};
+    this->d_data = (sign << M + E) | (exp << M) | man;
 }
 
 template<size_t M, size_t E>
-constexpr F<M, E>::F(BitArray<s_bits> const bit_array)
-    :
-        d_data{bit_array}
-{}
+constexpr F<M, E>::F(BitArray<s_bits> const bit_array) : d_data{bit_array}  {}
 
 template<size_t M, size_t E>
 F<M, E> F<M, E>::set_man(BitArray<s_bits> const mantissa)
@@ -144,31 +149,31 @@ F<M, E> F<M, E>::set_sign(bool const sign)
 }
 
 template<size_t M, size_t E>
-BitArray<F<M, E>::s_bits> F<M, E>::get_man()
+BitArray<F<M, E>::s_bits> F<M, E>::get_man() const
 {
     return d_data & s_man_mask;
 }
 
 template<size_t M, size_t E>
-BitArray<F<M, E>::s_bits> F<M, E>::get_exp()
+BitArray<F<M, E>::s_bits> F<M, E>::get_exp() const
 {
     return (d_data & s_exp_mask) >> M;
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::get_sign()
+bool F<M, E>::get_sign() const
 {
     return (d_data >> (M + E)).d_data[0] == 1;
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::operator==(F<M, E> const other)
+bool F<M, E>::operator==(F<M, E> const other) const
 {
     return this->d_data == other.d_data;
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::operator>(F<M, E> const other)
+bool F<M, E>::operator>(F<M, E> const other) const
 {   
     if (this->get_sign() != other.get_sign())
         return this->get_sign();
@@ -184,7 +189,7 @@ bool F<M, E>::operator>(F<M, E> const other)
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::operator<(F<M, E> const other)
+bool F<M, E>::operator<(F<M, E> const other) const
 { 
     if (this->get_sign() != other.get_sign())
         return other.get_sign();
@@ -200,15 +205,32 @@ bool F<M, E>::operator<(F<M, E> const other)
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::operator>=(F<M, E> const other)
+bool F<M, E>::operator>=(F<M, E> const other) const
 {
     return not (*this < other);
 }
 
 template<size_t M, size_t E>
-bool F<M, E>::operator<=(F<M, E> const other)
+bool F<M, E>::operator<=(F<M, E> const other) const
 {
     return not (*this > other);
+}
+
+template<size_t M, size_t E>
+F<M, E> F<M, E>::operator+=(F<M, E> const other)
+{
+    long exponent_difference =
+        static_cast<long>(this->get_exp()) - other.get_exp();
+    if (exponent_difference > 0)
+    {
+
+    }
+}
+
+template<size_t M, size_t E>
+F<M, E> F<M, E>::operator+(F<M, E> const other) const
+{
+    return F<M, E>{*this} += other;
 }
 
 template<size_t M, size_t E>
@@ -217,32 +239,38 @@ F<M, E> F<M, E>::operator*=(F<M, E> const other)
     if (*this == NAN or other == NAN)
         return NAN;
     else if (this->abs() == ZERO or other.abs() == ZERO)
-        return this->sign() == other.sign() ? ZERO : NEG_ZERO;
+        return this->get_sign() == other.get_sign() ? ZERO : NEG_ZERO;
     else if (this->abs() == INF or other.abs() == INF)
-        return this->sign() == other.sign() ? INF : NEG_INF;
-
+        return this->get_sign() == other.get_sign() ? INF : NEG_INF;
     // we compute the product of the two mantissa's
-    BitArray<s_bits> mantissa = 
-        this->man().floating_point_mul_internal(other.man()) +
-        this->man() + other.man() + s_two_to_the_M;
-    // we need to shift the result (left or right) until the leading 1 is at 
-    // position M. 
-    int64_t overflow = static_cast<int64_t>(E) - mantissa.leading_zeros();
-    mantissa >>= overflow;
+    BitArray<s_bits> man =
+        floating_point_mul_internal<s_bits, M>(this->get_man(), other.get_man())
+            + this->get_man() + other.get_man() + s_two_to_the_M;
+    // we need to shift the result (left or right) until the leading 1 is at
+    // position M.
+    int64_t overflow = static_cast<int64_t>(E) - man.leading_zeros();
+    man >>= overflow;
     // since the leading bit is implicit, we remove it
-    mantissa -= s_two_to_the_M;
-    BitArray<s_bits> exponent = this->exp() + other.exp() + overflow;
-    // TODO
+    man -= s_two_to_the_M;
+    BitArray<s_bits> exp = this->get_exp() + other.get_exp();
+    if (overflow > 0)
+        exp += BitArray<s_bits>(static_cast<WORD>(overflow));
+    else
+        exp -= BitArray<s_bits>(static_cast<WORD>(-overflow));
+    BitArray<s_bits> sign{
+        static_cast<WORD>(this->get_sign() ^ other.get_sign() ? 0 : 1)
+    };
+    return this->d_data = (sign << M + E) | (exp << M) | man;
 }
 
 template<size_t M, size_t E>
-F<M, E> F<M, E>::operator*(F<M, E> const other)
+F<M, E> F<M, E>::operator*(F<M, E> const other) const
 {
     return F<M, E>{*this} *= other;
 }
 
 template<size_t M, size_t E>
-F<M, E> F<M, E>::abs()
+F<M, E> F<M, E>::abs() const
 {
     return F<M, E>{*this}.set_sign(true);
 }
@@ -255,20 +283,17 @@ std::ostream &operator<<(std::ostream &stream, F<M, E> number)
     // one is the long double, which may still overflow. This means that very
     // large numbers are not printable using this implementation
 
-    // todo: use of the `<F, M>::operator== causes an undefined refernce to 
-    // `BitArray<F + M + 1>::operator==`. Not sure how to fix this.
-    // if (number == F<M, E>::ZERO)
-    //     std::cout << '0';
-    // else if (number == F<M, E>::NEG_ZERO)
-    //     std::cout << "-0";
-    // else 
+    if (number == F<M, E>::ZERO)
+        std::cout << '0';
+    else if (number == F<M, E>::NEG_ZERO)
+        std::cout << "-0";
+    else 
     {
         if (not number.get_sign())
             stream << '-';
         long double constexpr leading_one = pow(2L, M);
-        stream << (leading_one + number.get_man().to_ld()) / leading_one * 
-               pow(2L, number.get_exp().to_ld());
-
+        stream << (leading_one + number.get_man().to_ld()) /
+                   leading_one * pow(2L, number.get_exp().to_ld());
     }
     return stream;
 }

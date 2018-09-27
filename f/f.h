@@ -1,7 +1,7 @@
 #ifndef def_included_f_h
 #define def_included_f_h
 
-#include "bit_array.h"
+#include "bitarray/bit_array.h"
 
 // here M denotes the matissa length, and E the exponent length
 template<size_t M, size_t E>

@@ -353,7 +353,7 @@ BitArray<2*N> BitArray<N>::safe_mul(BitArray<N> const other) const
 }
 
 /// Performs floating point multiplication with the period to the left of
-/// `PERIOD`, but assums that everything to the left of `PERIOD` is set to 
+/// `PERIOD`, but assumes that everything to the left of `PERIOD` is set to
 /// zero. This allows for some optimizations, and is used by `fixed_point_mul`
 template<size_t N, size_t PERIOD>
 BitArray<N> floating_point_mul_internal(BitArray<N> const a,

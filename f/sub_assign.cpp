@@ -22,6 +22,6 @@ F<M, E> F<M, E>::operator-=(F<M, E> const other)
             great = &other;
             small = this;
         }
-        f
+        
     }
 }

@@ -1,7 +1,7 @@
 template<size_t M, size_t E>
-F<M, E> F<M, E>::operator*=(F<M, E> const other)
+F<M, E> constexpr F<M, E>::operator*=(F<M, E> const other)
 {
-    if (UNLIKELY(*this == NAN or other == NAN))
+    if (*this == NAN or other == NAN)
         return NAN;
     else if (this->abs() == ZERO or other.abs() == ZERO)
         return this->get_sign() == other.get_sign() ? ZERO : NEG_ZERO;
@@ -9,8 +9,10 @@ F<M, E> F<M, E>::operator*=(F<M, E> const other)
         return this->get_sign() == other.get_sign() ? INF : NEG_INF;
     // we compute the product of the two mantissa's
     BitArray<s_bits> man =
-        floating_point_mul_internal<s_bits, M>(this->get_man(), other.get_man())
-            + this->get_man() + other.get_man() + s_two_to_the_M;
+        // floating_point_mul_internal<s_bits, M>(this->get_man(), other.get_man())
+        //     + this->get_man() + other.get_man() + s_two_to_the_M;
+        FixedPoint<s_bits, M>(std::move(this->get_man() + s_two_to_the_M)) *
+        FixedPoint<s_bits, M>(std::move(other.get_man() + s_two_to_the_M));
     // we need to shift the result (left or right) until the leading 1 is at
     // position M.
     WORD overflow = E - man.leading_zeros();
@@ -27,5 +29,6 @@ F<M, E> F<M, E>::operator*=(F<M, E> const other)
     BitArray<s_bits> sign{
         static_cast<WORD>(this->get_sign() ^ other.get_sign() ? 0 : 1)
     };
-    return this->d_data = (sign << M + E) | (exp << M) | man;
+    this->d_data = (sign << M + E) | (exp << M) | man;
+    return *this;
 }

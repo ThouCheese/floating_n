@@ -1,0 +1,11 @@
+Heb je een expliciete this nodig om naar de data members van de parent class te 
+verwijzen?
+
+Zero cost conversion BitArray -> FixedPoint
+
+Operators voor bitarray returnen een bitarray, hoe laat ik ze een fp returnen 
+zonder dat ik het nodeloos langzaam maak
+
+Branch prediction macros hebben ruzie met constexpr
+
+constexpr std logarithm and power?

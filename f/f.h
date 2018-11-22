@@ -1,8 +1,9 @@
-#ifndef def_included_f_h
-#define def_included_f_h
+#ifndef DEF_INCLUDED_H
+#define DEF_INCLUDED_H
 
 #include "../bitarray/bit_array.h"
 #include "../fixed_point/fixed_point.h"
+#include "../support_functions/support_functions.h"
 
 // #define LIKELY(condition) __builtin_expect(static_cast<bool>(condition), 1)
 // #define UNLIKELY(condition) __builtin_expect(static_cast<bool>(condition), 0)
@@ -14,9 +15,9 @@ class F
     // important constants used interally
     size_t static constexpr s_bits = M + E + 1;
     BitArray<s_bits> static constexpr
-            s_two_to_the_M = BitArray<s_bits>::with_ones(M, M + 1),
-            s_two_to_the_E = BitArray<s_bits>::with_ones(E, E + 1),
-            s_exponent_bias = BitArray<s_bits>::with_ones(E - 1, E);
+        s_two_to_the_M = BitArray<s_bits>::with_ones(M, M + 1),
+        s_two_to_the_E = BitArray<s_bits>::with_ones(E, E + 1),
+        s_exponent_bias = BitArray<s_bits>::with_ones(E - 1, E);
 
     // masks for extracting the specific numbers
     BitArray<s_bits> static constexpr
@@ -37,17 +38,19 @@ public:
         NEG_INF{BitArray<s_bits>::with_ones(0, M + E)},
         ONE{BitArray<s_bits>::with_ones(M + E - 1, M + E + 1)},
         PI = get_pi(),
+        TWO_PI = PI * 2,
+        HALF_PI = PI / 2,
         EULER = get_e();
 
     BitArray<s_bits> d_data;
 
-private:
     constexpr F<M, E>() = default;
-    
-    explicit constexpr F<M, E>(BitArray<s_bits> const bit_array);
+private:
     // these functions are for internal use only, as they don't treat the
     // number so much as a number, but rather as three separate numbers. This 
     // is counterintuitive for the user.
+    
+    explicit constexpr F<M, E>(BitArray<s_bits> const bit_array);
     F<M, E> constexpr set_man(BitArray<s_bits> const matissa);
     F<M, E> constexpr set_exp(BitArray<s_bits> const exponent);
     F<M, E> constexpr set_sign(bool const sign);
@@ -64,6 +67,7 @@ public:
     bool constexpr operator>=(F<M, E> const other) const;
     bool constexpr operator<(F<M, E> const other) const;
     bool constexpr operator<=(F<M, E> const other) const;
+    bool constexpr operator!=(F<M, E> const other) const;
 
     F<M, E> constexpr operator-() const;
     F<M, E> constexpr operator+=(F<M, E> const other);
@@ -74,6 +78,8 @@ public:
     F<M, E> constexpr operator*(F<M, E> const other) const;
     F<M, E> constexpr operator/=(F<M, E> const other);
     F<M, E> constexpr operator/(F<M, E> const other) const;
+    F<M, E> constexpr operator%=(F<M, E> const other);
+    F<M, E> constexpr operator%(F<M, E> const other) const;
 
     // mathematical functions
     F<M, E> constexpr abs() const;
@@ -82,6 +88,10 @@ public:
     F<M, E> constexpr cos() const;
     F<M, E> constexpr tan() const;
     F<M, E> constexpr sqrt() const;
+    F<M, E> constexpr floor() const;
+
+    template<size_t P>
+    FixedPoint<s_bits, P> to_fp() const;
 
     template<size_t _M, size_t _E>
     friend std::ostream &operator<<(std::ostream &stream, F<_M, _E> number);
@@ -121,24 +131,21 @@ template<size_t M, size_t E>
 BitArray<F<M, E>::s_bits> constexpr F<M, E>::s_exp_mask;
 
 template<size_t M, size_t E>
-std::ostream &operator<<(std::ostream &stream, F<M, E> number);
+std::ostream &operator<<(std::ostream &stream, F<M, E> const number);
 
 #include "f1.cpp"
 #include "f2.cpp"
 
 #include "set_man.cpp"
-
 #include "set_exp.cpp"
-
 #include "set_sign.cpp"
 
 #include "get_man.cpp"
-
 #include "get_exp.cpp"
-
 #include "get_sign.cpp"
 
-#include "equals.cpp"
+#include "eq.cpp"
+#include "neq.cpp"
 
 #include "gt.cpp"
 #include "gte.cpp"
@@ -160,11 +167,16 @@ std::ostream &operator<<(std::ostream &stream, F<M, E> number);
 #include "div_assign.cpp"
 #include "div.cpp"
 
+#include "rem_assign.cpp"
+#include "rem.cpp"
+
 #include "abs.cpp"
 #include "pow.cpp"
 
 #include "get_pi.cpp"
 #include "get_e.cpp"
+
+#include "sin.cpp"
 
 #include "ostream_shift.cpp"
 

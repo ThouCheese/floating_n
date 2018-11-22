@@ -6,7 +6,7 @@ bool constexpr F<M, E>::operator<(F<M, E> const other) const
 
     if (this->get_exp() < other.get_exp())
         return true;
-    else if (this->get_exp > other.get_exp())
+    else if (this->get_exp() > other.get_exp())
         return false;
 
     if (this->get_man() < other.get_man())

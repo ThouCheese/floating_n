@@ -1,47 +1,23 @@
 template<size_t M, size_t E>
 constexpr F<M, E>::F(double const number)
 {
-    // might be more complicated than necessary
-    if (number == 0)
-    {   
-        *this = ZERO;
-        return;
-    }
-    double pos_num = std::abs(number);
-    double exponent_double = __builtin_log(pos_num / std::log(2.0));
-    BitArray<s_bits> exp;
-    BitArray<s_bits> man;
-    if (exponent_double > 0.0)
-    {
-        // the exponent is the log2 of the number rounded down
-        WORD exp_word = static_cast<WORD>(std::log(pos_num) / std::log(2.0));
-        // add the bias so we can store the value
-        exp = s_exponent_bias + BitArray<s_bits>{exp_word};
-
-        WORD man_word = static_cast<WORD>(
-            pos_num / std::pow(2, exp_word) * std::pow(2, M - 1)
-        );
-        // if the mantissa word is precisely zero, we have a special case and we
-        // cannot subtract the implicit leading one. Instead, we leave the 
-        // mantissa as-is and we need to add 1 to the exponent
-        if (man_word)
-            man = (BitArray<s_bits>{man_word} << 1) - s_two_to_the_M;
-        else
-            exp += BitArray<s_bits>{1ul};
-    }
+    // assume the following layout for a double:
+    // 1 bit that is 0 if +, 1 if -
+    // 11 bits that are the biased exponent
+    // 52 bits that are the matissa
+    WORD num = f64_to_u64(number);
+    BitArray<s_bits> sign{num & 0x8000000000000000 ? 0ul : 1};
+    // BitArray<s_bits>  exp{(num & 0x7FF0000000000000) >> 52};
+    
+    BitArray<s_bits> exp = s_exponent_bias + BitArray<s_bits>{1ul};
+    if (num & 0x4000000000000000)
+        exp += BitArray<s_bits>((num & 0x3FF0000000000000) >> 52);
     else
-    {
-        WORD exp_word = static_cast<WORD>(-std::log(pos_num) / std::log(2.0)+1);
-        exp = s_exponent_bias - BitArray<s_bits>{exp_word};
-        WORD man_word = static_cast<WORD>(
-            pos_num / std::pow(2, -static_cast<int64_t>(exp_word))
-                * std::pow(2, M - 1)
-        );
-        if (man_word)
-            man = (BitArray<s_bits>{man_word} << 1) - s_two_to_the_M;
-        else
-            exp += BitArray<s_bits>{1ul};
-    }
-    BitArray<s_bits> sign{static_cast<WORD>(number > 0.0 ? 1 : 0)};
+        exp -= BitArray<s_bits>((0x4000000000000000 - (num & 0x3FF0000000000000)) >> 52);
+
+
+    BitArray<s_bits>  man{num & 0x000FFFFFFFFFFFFF};
+    man <<= (M - 52);
+
     this->d_data = (sign << M + E) | (exp << M) | man;
 }

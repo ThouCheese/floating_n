@@ -9,10 +9,8 @@ F<M, E> constexpr F<M, E>::operator*=(F<M, E> const other)
         return this->get_sign() == other.get_sign() ? INF : NEG_INF;
     // we compute the product of the two mantissa's
     BitArray<s_bits> man =
-        // floating_point_mul_internal<s_bits, M>(this->get_man(), other.get_man())
-        //     + this->get_man() + other.get_man() + s_two_to_the_M;
-        FixedPoint<s_bits, M>(std::move(this->get_man() + s_two_to_the_M)) *
-        FixedPoint<s_bits, M>(std::move(other.get_man() + s_two_to_the_M));
+        FixedPoint<s_bits, M>(this->get_man() + s_two_to_the_M) *
+        FixedPoint<s_bits, M>(other.get_man() + s_two_to_the_M);
     // we need to shift the result (left or right) until the leading 1 is at
     // position M.
     WORD overflow = E - man.leading_zeros();

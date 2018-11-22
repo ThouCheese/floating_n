@@ -8,15 +8,11 @@ constexpr F<M, E> F<M, E>::operator-=(F<M, E> const other)
     if (this->get_sign() != other.get_sign())
     {
         if (this->get_sign())
-        {
             return *this += other;
-        }
         else
-        {
             return *this = -*this + -other;
-        }
     }
-    F<M, E> const *great, *small;
+    F<M, E> const *great = 0, *small = 0;
     if (this->abs() > other.abs())
         great = this, small = &other;
     else
@@ -31,11 +27,11 @@ constexpr F<M, E> F<M, E>::operator-=(F<M, E> const other)
     size_t overflow = man.leading_zeros() - E;
     man <<= overflow;
     man -= s_two_to_the_M;
-    BitArray<s_bits> exp = (great_exp - BitArray<s_bits>{overflow}) << M;
+    BitArray<s_bits> exp = (great_exp - BitArray<s_bits>(overflow)) << M;
     
-    auto sign = BitArray<s_bits>{
-        great->get_sign() && (this == great) ? static_cast<WORD>(1) : 0
-    } << M + E;
+    auto sign = BitArray<s_bits>(
+        great->get_sign() && (this == great) ? 1ul : 0
+    ) << M + E;
 
     this->d_data = sign | exp | man;
     return *this;

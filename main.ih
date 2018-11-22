@@ -1,0 +1,3 @@
+#include "f/f.h"
+
+using namespace std;

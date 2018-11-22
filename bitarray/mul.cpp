@@ -30,10 +30,10 @@ constexpr BitArray<N> BitArray<N>::operator*(BitArray<N> const other) const
     auto result = BitArray<N>();
 
     // O(n^c), (1 < c < 2) which is pretty bad :(
-    for (size_t self_index = 0; self_index != d_length; ++self_index)
-        for (size_t other_index = 0; other_index != d_length; ++other_index)
+    for (size_t self_index = 0; self_index != s_length; ++self_index)
+        for (size_t other_index = 0; other_index != s_length; ++other_index)
         {
-            if (self_index + other_index >= d_length)
+            if (self_index + other_index >= s_length)
                 break;
             auto pair = mul_with_carry<WORD_LENGTH>(
                 this->d_data[self_index], other.d_data[other_index]
@@ -41,7 +41,7 @@ constexpr BitArray<N> BitArray<N>::operator*(BitArray<N> const other) const
             BitArray<N> temp = BitArray<N>();
             temp.d_data[self_index + other_index] = pair.second;
             // prevent a segfault when writing the carry
-            if (self_index + other_index + 1 < d_length)
+            if (self_index + other_index + 1 < s_length)
                 temp.d_data[self_index + other_index + 1] = pair.first;
             result = result + temp;
         }

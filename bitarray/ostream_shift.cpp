@@ -3,7 +3,7 @@ constexpr std::ostream &operator<<(std::ostream &stream, BitArray<N> bit_array)
 {
     std::cout << "0";
     char separator = 'x';
-    for (size_t index = BitArray<N>::d_length; index-- != 0;)
+    for (size_t index = BitArray<N>::s_length; index-- != 0;)
     {
         std::cout << separator 
                   << std::setfill('0') 

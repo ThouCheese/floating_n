@@ -6,15 +6,18 @@ size_t constexpr fact(size_t const n)
 template<size_t M, size_t E>
 F<M, E> constexpr F<M, E>::get_pi() noexcept
 {
-    F<M, E> pi = 3;
-    F<M, E> _4 = 4;
-    F<M, E> denom = 2;
-    for (size_t iter = 1; iter < 1000; ++iter)
+    F<M, E> _2 = ONE + ONE;      // initialized to 2
+    F<M, E> denom = _2;          // initialized to 2
+    F<M, E> pi = _2 + ONE;       // initialzied to 3
+    F<M, E> _4 = pi + ONE;       // initialized to 4
+    F<M, E> pi_previous = ZERO;  // initialized to 0
+    for (size_t iter = 0; iter < 30; ++iter)
     {
-        pi += _4 / (denom * (denom + 1) * (denom + 2));
-        denom += 2;
-        pi -= _4 / (denom * (denom + 1) * (denom + 2));
-        denom += 2;
+        pi_previous = pi;
+        pi += _4 / (denom * (denom + ONE) * (denom + _2));
+        denom += _2;
+        pi -= _4 / (denom * (denom + ONE) * (denom + _2));
+        denom += _2;
     }
     return pi;
 }

@@ -5,6 +5,9 @@
 #include <iomanip>
 #include <cmath>
 
+template<size_t N, size_t P>
+class FixedPoint;
+
 typedef uint64_t WORD;
 /**
 * Here N is the number of bits that the array has to store
@@ -14,12 +17,12 @@ class BitArray
 {
 public:
     size_t static constexpr WORD_LENGTH = 64;
-    size_t static constexpr d_length = (N + WORD_LENGTH - 1) / WORD_LENGTH;
-    WORD d_data[d_length];
+    size_t static constexpr s_length = (N + WORD_LENGTH - 1) / WORD_LENGTH;
+    WORD d_data[s_length];
 
     constexpr BitArray();
     template<class... T>
-    explicit constexpr BitArray(T... ts);
+    explicit constexpr BitArray<N>(T... ts);
     constexpr BitArray(BitArray const bitand other) = default;
 
     constexpr BitArray<N> operator>>=(int const n);
@@ -51,8 +54,8 @@ public:
     static constexpr BitArray<N> with_ones(size_t start, size_t end);
 };
 
-#include "bit_array0.cpp"
 #include "bit_array1.cpp"
+#include "bit_array2.cpp"
 
 #include "rshift_assign.cpp"
 #include "rshift.cpp"
